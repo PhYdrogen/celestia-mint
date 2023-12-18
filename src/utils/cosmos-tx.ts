@@ -1,7 +1,7 @@
 import {Balance, WalletItem} from "../datatypes/cosmos.js";
 import {DEFAULT_DENOMINATION, DEFAULT_TOKEN_PREFIX, EXPLORER_TX_PATH, GAS_MULTIPLIER} from "../config.js";
 import {Coin, coins} from "@cosmjs/proto-signing";
-import {getCurrentTime} from "./other.js";
+import {getCurrentTime, sleep} from "./other.js";
 import {getWalletBalance} from "./cosmos-common.js";
 
 
@@ -66,7 +66,7 @@ function groupBySender(walletItems: WalletItem[]): { [p: string]: WalletItem[] }
 }
 
 function logInsufficientBalance(sender: string, required: number, actual: number) {
-    console.log(`${getCurrentTime()} ${sender}: the minimum balance should be: ${required} $${DEFAULT_TOKEN_PREFIX.toUpperCase()}, but it's only ${actual} $${DEFAULT_TOKEN_PREFIX.toUpperCase()}.`)
+    console.log(`❌ ${getCurrentTime()} ${sender}: the minimum balance should be: ${required} $${DEFAULT_TOKEN_PREFIX.toUpperCase()}, but it's only ${actual} $${DEFAULT_TOKEN_PREFIX.toUpperCase()}.`)
 }
 
 function createSingleMessage(itemsFromSameSender: WalletItem, totalAmountToSend: Balance) {
@@ -119,7 +119,7 @@ async function trySendOrLogError(
             sender, messages, fee, itemsFromSameSender[0].memo
         );
 
-        console.log(`${getCurrentTime()} ${sender} -> ${totalAmountToSend.float} $TIA | fee: ${parseFloat((estimatedFeeAdjustment / DEFAULT_DENOMINATION).toFixed(4))} $TIA | ${EXPLORER_TX_PATH}/${txHash}.`)
+        console.log(`✅ ${getCurrentTime()} ${sender} -> ${totalAmountToSend.float} $TIA | fee: ${parseFloat((estimatedFeeAdjustment / DEFAULT_DENOMINATION).toFixed(4))} $TIA | ${EXPLORER_TX_PATH}/${txHash}.`)
 
     } else {
         logInsufficientBalance(sender, totalAmountToSend.int + estimatedFeeAdjustment, currentBalance.int);
@@ -136,7 +136,7 @@ async function handleTransaction(sender: string, itemsFromSameSender: WalletItem
             totalAmountToSend = adjustForFullBalance(currentBalance, estimatedFeeAdjustment);
             messages = createSingleMessage(itemsFromSameSender[0], totalAmountToSend);
         }
-
+        sleep(1000);
         await trySendOrLogError(sender, itemsFromSameSender, currentBalance, messages, fee, totalAmountToSend, estimatedFeeAdjustment);
     } else {
         logInsufficientBalance(sender, totalAmountToSend.int, currentBalance.int);
